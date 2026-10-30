@@ -24,6 +24,59 @@ SETTINGS="$VPN_DIR/settings.conf"
 XRAY_CONFIG="/usr/local/etc/xray/config.json"
 LICENSE_FILE="$VPN_DIR/license.conf"
 
+# ─── First Time Setup Wizard ──────────────────────────────────
+first_time_setup() {
+    clear
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}           VPN MANAGER - FIRST TIME SETUP WIZARD${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e " ${WHITE}Welcome! Please configure your server details below.${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    
+    while true; do
+        echo -ne " ${GREEN}Enter your Main Domain (e.g. vpn.mydomain.com): ${NC}"
+        read -r INPUT_DOMAIN
+        [ -n "$INPUT_DOMAIN" ] && break
+        echo -e " ${RED}[!] Domain cannot be empty!${NC}"
+    done
+
+    while true; do
+        echo -ne " ${GREEN}Enter your NameServer / NS Domain (e.g. ns.mydomain.com): ${NC}"
+        read -r INPUT_NS
+        [ -n "$INPUT_NS" ] && break
+        echo -e " ${RED}[!] NS Domain cannot be empty!${NC}"
+    done
+
+    echo -ne " ${GREEN}Enter Client / Owner Name [Default: VPS]: ${NC}"
+    read -r INPUT_CLIENT
+    INPUT_CLIENT="${INPUT_CLIENT:-VPS}"
+
+    RAND_PUBKEY=$(tr -dc 'a-f0-9' < /dev/urandom 2>/dev/null | head -c 64 || echo "7fbd1f8aa0abfe15a7903e837f78aba39cf61d36f183bd604daa2fe4ef3b7b59")
+    echo -ne " ${GREEN}SlowDNS Public Key [Press Enter to auto-generate]: ${NC}"
+    read -r INPUT_KEY
+    INPUT_KEY="${INPUT_KEY:-$RAND_PUBKEY}"
+
+    cat > "$SETTINGS" <<EOF
+DOMAIN=$INPUT_DOMAIN
+NS_DOMAIN=$INPUT_NS
+BOT_TOKEN=
+CHAT_ID=
+SLOWDNS_PUBKEY=$INPUT_KEY
+CLIENT_NAME=$INPUT_CLIENT
+EXPIRY_DATE=2027-01-01
+EOF
+
+    cat > "$LICENSE_FILE" <<EOF
+CLIENT=$INPUT_CLIENT
+EXPIRY=2027-01-01
+EOF
+
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e " ${GREEN}[✓] Setup complete! Saved Domain: $INPUT_DOMAIN and NS: $INPUT_NS${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    sleep 2
+}
+
 # ─── Init ─────────────────────────────────────────────────────
 init_dirs() {
     mkdir -p "$VPN_DIR"
@@ -32,21 +85,7 @@ init_dirs() {
     [ ! -f "$VLESS_DB" ]  && touch "$VLESS_DB"
     [ ! -f "$TROJAN_DB" ] && touch "$TROJAN_DB"
     if [ ! -f "$SETTINGS" ]; then
-        cat > "$SETTINGS" <<EOF
-DOMAIN=yourdomain.com
-NS_DOMAIN=ns.yourdomain.com
-BOT_TOKEN=
-CHAT_ID=
-SLOWDNS_PUBKEY=
-CLIENT_NAME=VPS
-EXPIRY_DATE=2027-01-01
-EOF
-    fi
-    if [ ! -f "$LICENSE_FILE" ]; then
-        cat > "$LICENSE_FILE" <<EOF
-CLIENT=VPS
-EXPIRY=2027-01-01
-EOF
+        first_time_setup
     fi
 }
 
